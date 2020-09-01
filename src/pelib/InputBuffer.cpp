@@ -10,7 +10,7 @@
 * of PeLib.
 */
 
-#include "pelib/InputBuffer.h"
+#include "retdec/pelib/InputBuffer.h"
 
 namespace PeLib
 {
@@ -65,4 +65,3 @@ namespace PeLib
 		ulIndex = 0;
 	}
 }
-

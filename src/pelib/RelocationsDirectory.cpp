@@ -10,62 +10,148 @@
 * of PeLib.
 */
 
-#include "pelib/PeLibInc.h"
-#include "pelib/RelocationsDirectory.h"
+#include "retdec/pelib/PeLibInc.h"
+#include "retdec/pelib/RelocationsDirectory.h"
 
 namespace PeLib
 {
-	void RelocationsDirectory::setRelocationData(unsigned int ulRelocation, unsigned int ulDataNumber, word wData)
+	/**
+	* Constructor
+	*/
+	RelocationsDirectory::RelocationsDirectory() : m_ldrError(LDR_ERROR_NONE)
+	{}
+
+	int RelocationsDirectory::read(ImageLoader & imageLoader)
+	{
+		std::uint32_t rva = imageLoader.getDataDirRva(PELIB_IMAGE_DIRECTORY_ENTRY_BASERELOC);
+		std::uint32_t size = imageLoader.getDataDirSize(PELIB_IMAGE_DIRECTORY_ENTRY_BASERELOC);
+		std::uint32_t sizeOfImage = imageLoader.getSizeOfImage();
+
+		// Check for relocations out of image
+		if(rva >= sizeOfImage || (rva + size) < rva || (rva + size) > sizeOfImage)
+		{
+			RelocationsDirectory::setLoaderError(LDR_ERROR_RELOCATIONS_OUT_OF_IMAGE);
+			return ERROR_INVALID_FILE;
+		}
+
+		// Read the entire relocation directory from the image
+		std::vector<std::uint8_t> vRelocDirectory(size);
+		imageLoader.readImage(vRelocDirectory.data(), rva, size);
+
+		// Parse the relocations directory
+		read(vRelocDirectory.data(), size, sizeOfImage);
+		return ERROR_NONE;
+	}
+
+	/**
+	* Get the error that was detected during parsing of relocations
+	**/
+	LoaderError RelocationsDirectory::loaderError() const
+	{
+		return m_ldrError;
+	}
+
+	void RelocationsDirectory::setLoaderError(LoaderError ldrError)
+	{
+		// Do not override an existing error
+		if (m_ldrError == LDR_ERROR_NONE)
+		{
+			m_ldrError = ldrError;
+		}
+	}
+
+	void RelocationsDirectory::setRelocationData(unsigned int ulRelocation, unsigned int ulDataNumber, std::uint16_t wData)
 	{
 		m_vRelocations[ulRelocation].vRelocData[ulDataNumber] = wData;
 	}
 
-	void RelocationsDirectory::read(InputBuffer& inputbuffer, unsigned int uiSize)
+	void RelocationsDirectory::read(const std::uint8_t * data, std::uint32_t uiSize, std::uint32_t sizeOfImage)
 	{
-		IMG_BASE_RELOC ibrCurr;
+		const std::uint8_t * dataEnd = data + uiSize;
 
-		std::vector<IMG_BASE_RELOC> vCurrReloc;
+		// Clear the current relocations
+		m_vRelocations.clear();
 
-		do
+		// The entire relocation block looks like this:
+		// * PELIB_IMAGE_BASE_RELOCATION (header of block)
+		// * array of relocation entry, each has 2 bytes
+		// * PELIB_IMAGE_BASE_RELOCATION (header of next block)
+		// * array of relocation entry, each has 2 bytes
+		// ... and so on, up to uiSize
+		while((data + PELIB_IMAGE_SIZEOF_BASE_RELOCATION) < dataEnd)
 		{
-			if (inputbuffer.get() + sizeof(ibrCurr.ibrRelocation.VirtualAddress) + sizeof(ibrCurr.ibrRelocation.SizeOfBlock) > uiSize)
+			const PELIB_IMAGE_BASE_RELOCATION * pRelocBlock = (const PELIB_IMAGE_BASE_RELOCATION *)data;
+			IMG_BASE_RELOC ibrCurr;
+
+			// Retrieve the single PELIB_IMAGE_BASE_RELOCATION entry.
+			// Note that SizeOfBlock contains size of PELIB_IMAGE_BASE_RELOCATION itself
+			// plus sizes of all subsequent fixup entries
+			ibrCurr.ibrRelocation.VirtualAddress = pRelocBlock->VirtualAddress;
+			ibrCurr.ibrRelocation.SizeOfBlock = pRelocBlock->SizeOfBlock;
+
+			// Verify whether the base virtual address is within the image
+			if(ibrCurr.ibrRelocation.VirtualAddress > sizeOfImage)
 			{
+				setLoaderError(LDR_ERROR_RELOC_BLOCK_INVALID_VA);
 				break;
 			}
-			inputbuffer >> ibrCurr.ibrRelocation.VirtualAddress;
-			inputbuffer >> ibrCurr.ibrRelocation.SizeOfBlock;
-
-			ibrCurr.vRelocData.clear();
-
-			// That's not how to check if there are relocations, some DLLs start at VA 0.
-			// if (!ibrCurr.ibrRelocation.VirtualAddress) break;
-
-			for (unsigned int i=0;i<(ibrCurr.ibrRelocation.SizeOfBlock - PELIB_IMAGE_SIZEOF_BASE_RELOCATION) / sizeof(word);i++)
+			if((data + ibrCurr.ibrRelocation.SizeOfBlock) > dataEnd)
 			{
-				if (inputbuffer.get() + sizeof(word) > uiSize)
-				{
-					break;
-				}
-				word wData;
-				inputbuffer >> wData;
-				ibrCurr.vRelocData.push_back(wData);
+				setLoaderError(LDR_ERROR_RELOC_BLOCK_INVALID_LENGTH);
+				break;
 			}
 
-			vCurrReloc.push_back(ibrCurr);
-		} while (ibrCurr.ibrRelocation.VirtualAddress && inputbuffer.get() < uiSize);
+			// Move the offset by the size of relocation block structure
+			data += PELIB_IMAGE_SIZEOF_BASE_RELOCATION;
 
-		std::swap(vCurrReloc, m_vRelocations);
-	}
+			// Prevent underflow caused by size smaller than PELIB_IMAGE_SIZEOF_BASE_RELOCATION.
+			// Example: \retdec-regression-tests\tools\fileinfo\detection\packers\securom\sample_securom_003.dat
+			if(ibrCurr.ibrRelocation.SizeOfBlock >= PELIB_IMAGE_SIZEOF_BASE_RELOCATION)
+			{
+				// Get the number of fixup entries
+				const std::uint16_t * typeAndOffsets = (const std::uint16_t *)(pRelocBlock + 1);
+				std::uint32_t numberOfEntries = (ibrCurr.ibrRelocation.SizeOfBlock - PELIB_IMAGE_SIZEOF_BASE_RELOCATION) / sizeof(uint16_t);
 
-	// TODO: Return value is wrong if buffer was too small.
-	int RelocationsDirectory::read(const unsigned char* buffer, unsigned int buffersize)
-	{
-		std::vector<unsigned char> vRelocDirectory(buffer, buffer + buffersize);
+				for (std::uint32_t i = 0; i < numberOfEntries; i++)
+				{
+					// Read the type and offset
+					if((data + sizeof(std::uint16_t)) > dataEnd)
+						break;
+					uint16_t typeAndOffset = typeAndOffsets[i];
 
-		InputBuffer ibBuffer(vRelocDirectory);
-		read(ibBuffer, buffersize);
+					// Verify the type and offset
+					switch(typeAndOffset >> 12)
+					{
+						case PELIB_IMAGE_REL_BASED_HIGHADJ:	// This relocation entry occupies two entries
+							data += sizeof(uint16_t);
+							// No break here!
 
-		return ERROR_NONE;
+						case PELIB_IMAGE_REL_BASED_ABSOLUTE:
+						case PELIB_IMAGE_REL_BASED_HIGH:
+						case PELIB_IMAGE_REL_BASED_LOW:
+						case PELIB_IMAGE_REL_BASED_HIGHLOW:
+						case PELIB_IMAGE_REL_BASED_MIPS_JMPADDR:
+						case PELIB_IMAGE_REL_BASED_IA64_IMM64:
+						case PELIB_IMAGE_REL_BASED_DIR64:
+
+							// This is a correct relocation entry. Lower 12 bits contains
+							// relocation offset relative to ibrCurr.ibrRelocation.VirtualAddress
+							break;
+
+						default:    // Invalid relocation entry type
+							setLoaderError(LDR_ERROR_RELOC_ENTRY_BAD_TYPE);
+							break;
+					}
+
+					// Push the relocation entry to the list
+					ibrCurr.vRelocData.push_back(typeAndOffset);
+					data += sizeof(uint16_t);
+				}
+
+				// Push the data to the relocations vector
+				m_vRelocations.push_back(std::move(ibrCurr));
+			}
+		}
 	}
 
 	unsigned int RelocationsDirectory::size() const
@@ -74,7 +160,7 @@ namespace PeLib
 
 		for (unsigned int i=0;i<m_vRelocations.size();i++)
 		{
-			size2 += static_cast<unsigned int>(m_vRelocations[i].vRelocData.size()) * sizeof(word);
+			size2 += static_cast<unsigned int>(m_vRelocations[i].vRelocData.size()) * sizeof(std::uint16_t);
 		}
 
 		return size2;
@@ -85,12 +171,12 @@ namespace PeLib
 		return static_cast<unsigned int>(m_vRelocations.size());
 	}
 
-	dword RelocationsDirectory::getVirtualAddress(unsigned int ulRelocation) const
+	std::uint32_t RelocationsDirectory::getVirtualAddress(unsigned int ulRelocation) const
 	{
 		return m_vRelocations[ulRelocation].ibrRelocation.VirtualAddress;
 	}
 
-	dword RelocationsDirectory::getSizeOfBlock(unsigned int ulRelocation) const
+	std::uint32_t RelocationsDirectory::getSizeOfBlock(unsigned int ulRelocation) const
 	{
 		return m_vRelocations[ulRelocation].ibrRelocation.SizeOfBlock;
 	}
@@ -100,17 +186,17 @@ namespace PeLib
 		return static_cast<unsigned int>(m_vRelocations[ulRelocation].vRelocData.size());
 	}
 
-	word RelocationsDirectory::getRelocationData(unsigned int ulRelocation, unsigned int ulDataNumber) const
+	std::uint16_t RelocationsDirectory::getRelocationData(unsigned int ulRelocation, unsigned int ulDataNumber) const
 	{
 		return m_vRelocations[ulRelocation].vRelocData[ulDataNumber];
 	}
 
-	void RelocationsDirectory::setVirtualAddress(unsigned int ulRelocation, dword dwValue)
+	void RelocationsDirectory::setVirtualAddress(unsigned int ulRelocation, std::uint32_t dwValue)
 	{
 		m_vRelocations[ulRelocation].ibrRelocation.VirtualAddress = dwValue;
 	}
 
-	void RelocationsDirectory::setSizeOfBlock(unsigned int ulRelocation, dword dwValue)
+	void RelocationsDirectory::setSizeOfBlock(unsigned int ulRelocation, std::uint32_t dwValue)
 	{
 		m_vRelocations[ulRelocation].ibrRelocation.SizeOfBlock = dwValue;
 	}
@@ -121,12 +207,12 @@ namespace PeLib
 		m_vRelocations.push_back(newrelocation);
 	}
 
-	void RelocationsDirectory::addRelocationData(unsigned int ulRelocation, word wValue)
+	void RelocationsDirectory::addRelocationData(unsigned int ulRelocation, std::uint16_t wValue)
 	{
 		m_vRelocations[ulRelocation].vRelocData.push_back(wValue);
 	}
 
-/*	void RelocationsDirectory::removeRelocationData(unsigned int ulRelocation, word wValue)
+/*	void RelocationsDirectory::removeRelocationData(unsigned int ulRelocation, std::uint16_t wValue)
 	{
 		// If you get an error with Borland C++ here you have two options: Upgrade your compiler
 		// or use the commented line instead of the line below.

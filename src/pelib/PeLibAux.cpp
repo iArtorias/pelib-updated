@@ -16,16 +16,14 @@
   #include <ctype.h>
 #endif
 
-#include "pelib/PeLibInc.h"
-#include "pelib/PeLibAux.h"
-#include "pelib/PeFile.h"
+#include "retdec/pelib/PeLibInc.h"
+#include "retdec/pelib/PeLibAux.h"
+#include "retdec/pelib/PeFile.h"
 
 namespace PeLib
 {
-	const qword PELIB_IMAGE_ORDINAL_FLAGS<64>::PELIB_IMAGE_ORDINAL_FLAG = 0x8000000000000000ULL;
-
 	// Keep in sync with PeLib::LoaderError!!!
-	static const std::vector<LoaderErrorString> LdrErrStrings =
+	static const std::vector<LoaderErrorInfo> LdrErrStrings =
 	{
 		{"LDR_ERROR_NONE",                         "No error"},
 		{"LDR_ERROR_FILE_TOO_BIG",                 "The file is larger than 4GB - 1"},
@@ -61,26 +59,39 @@ namespace PeLib
 		{"LDR_ERROR_INVALID_SECTION_RAWSIZE",      "Invalid raw data size of a section" },
 		{"LDR_ERROR_INVALID_SIZE_OF_IMAGE",        "IMAGE_OPTIONAL_HEADER::SizeOfImage doesn't match the (header+sections)" },
 		{"LDR_ERROR_FILE_IS_CUT",                  "The PE file is cut" },
-		{"LDR_ERROR_FILE_IS_CUT_LOADABLE",         "The PE file is cut, but loadable" },
+		{"LDR_ERROR_FILE_IS_CUT_LOADABLE",         "The PE file is cut, but loadable", true},
 
 		// Import directory detected errors
-		{"LDR_ERROR_IMPDIR_OUT_OF_FILE",           "Offset of the import directory is out of the file" },
-		{"LDR_ERROR_IMPDIR_CUT",                   "Import directory is cut" },
-		{"LDR_ERROR_IMPDIR_COUNT_EXCEEDED",        "Number of import descriptors exceeds maximum" },
-		{"LDR_ERROR_IMPDIR_NAME_RVA_INVALID",      "RVA of the import name is invalid" },
-		{"LDR_ERROR_IMPDIR_THUNK_RVA_INVALID",     "RVA of the import thunk is invalid" },
-		{"LDR_ERROR_IMPDIR_IMPORT_COUNT_EXCEEDED", "Number of imported functions exceeds maximum" },
+		{"LDR_ERROR_IMPDIR_OUT_OF_FILE",           "Offset of the import directory is out of the file", true },
+		{"LDR_ERROR_IMPDIR_CUT",                   "Import directory is cut", true },
+		{"LDR_ERROR_IMPDIR_COUNT_EXCEEDED",        "Number of import descriptors exceeds maximum", true },
+		{"LDR_ERROR_IMPDIR_NAME_RVA_INVALID",      "RVA of the import name is invalid", true },
+		{"LDR_ERROR_IMPDIR_THUNK_RVA_INVALID",     "RVA of the import thunk is invalid", true },
+		{"LDR_ERROR_IMPDIR_IMPORT_COUNT_EXCEEDED", "Number of imported functions exceeds maximum", true },
 
 		// Resource directory detected errors
-		{"LDR_ERROR_RSRC_OVER_END_OF_IMAGE",       "Array of resource directory entries goes beyond end of the image" },
+		{"LDR_ERROR_RSRC_OVER_END_OF_IMAGE",       "Array of resource directory entries goes beyond end of the image", true },
+		{"LDR_ERROR_RSRC_NAME_OUT_OF_IMAGE",       "One of the resource names points out of the image", true },
+		{"LDR_ERROR_RSRC_DATA_OUT_OF_IMAGE",       "One of the resource data points out of the image", true },
+		{"LDR_ERROR_RSRC_SUBDIR_OUT_OF_IMAGE",     "One of the resource subdirectories points out of the image", true },
 
 		// Entry point error detection
-		{"LDR_ERROR_ENTRY_POINT_OUT_OF_IMAGE",     "The position of the entry point is out of the image" },
-		{"LDR_ERROR_ENTRY_POINT_ZEROED",           "The entry point is zeroed; probably damaged file" },
+		{"LDR_ERROR_ENTRY_POINT_OUT_OF_IMAGE",     "The position of the entry point is out of the image", true },
+		{"LDR_ERROR_ENTRY_POINT_ZEROED",           "The entry point is zeroed; probably damaged file", true },
 
 		// Signature error detection
-		{"LDR_ERROR_DIGITAL_SIGNATURE_CUT",        "The digital signature is cut or missing; probably damaged file" },
-		{"LDR_ERROR_DIGITAL_SIGNATURE_ZEROED",     "The digital signature is zeroed; probably damaged file" },
+		{"LDR_ERROR_DIGITAL_SIGNATURE_CUT",        "The digital signature is cut or missing; probably damaged file", true },
+		{"LDR_ERROR_DIGITAL_SIGNATURE_ZEROED",     "The digital signature is zeroed; probably damaged file", true },
+
+		// Relocation errors
+		{"LDR_ERROR_RELOCATIONS_OUT_OF_IMAGE",     "The relocation directory points out of the image", true },
+		{"LDR_ERROR_RELOC_BLOCK_INVALID_VA",       "A relocation block has invalid virtual address", true },
+		{"LDR_ERROR_RELOC_BLOCK_INVALID_LENGTH",   "A relocation block has invalid length", true },
+		{"LDR_ERROR_RELOC_ENTRY_BAD_TYPE",         "A relocation entry has invalid type", true },
+
+		// Other errors
+		{"LDR_ERROR_INMEMORY_IMAGE",               "The file is an in-memory image", false },
+
 	};
 
 	PELIB_IMAGE_FILE_MACHINE_ITERATOR::PELIB_IMAGE_FILE_MACHINE_ITERATOR()
@@ -106,21 +117,6 @@ namespace PeLib
 	PELIB_IMAGE_FILE_MACHINE_ITERATOR::imageFileMachineIterator PELIB_IMAGE_FILE_MACHINE_ITERATOR::end() const
 	{
 		return all.end();
-	}
-
-	bool PELIB_IMAGE_SECTION_HEADER::biggerFileOffset(const PELIB_IMAGE_SECTION_HEADER& ish) const
-	{
-		return PointerToRawData < ish.PointerToRawData;
-	}
-
-	bool PELIB_IMAGE_SECTION_HEADER::biggerVirtualAddress(const PELIB_IMAGE_SECTION_HEADER& ish) const
-	{
-		return VirtualAddress < ish.VirtualAddress;
-	}
-
-	bool PELIB_IMAGE_SECTION_HEADER::isFullNameSet() const
-	{
-		return !StringTableName.empty();
 	}
 
 	unsigned int alignOffset(unsigned int uiOffset, unsigned int uiAlignment)
@@ -191,13 +187,18 @@ namespace PeLib
 
 	bool getLoaderErrorLoadableAnyway(LoaderError ldrError)
 	{
-		// These errors indicate damaged PE file, but the file is usually loadable anyway
-		return (ldrError == LDR_ERROR_FILE_IS_CUT_LOADABLE ||
-				ldrError == LDR_ERROR_RSRC_OVER_END_OF_IMAGE ||
-				ldrError == LDR_ERROR_ENTRY_POINT_OUT_OF_IMAGE ||
-				ldrError == LDR_ERROR_ENTRY_POINT_ZEROED ||
-				ldrError == LDR_ERROR_DIGITAL_SIGNATURE_CUT ||
-				ldrError == LDR_ERROR_DIGITAL_SIGNATURE_ZEROED);
+		std::size_t index = (std::size_t)ldrError;
+
+		// When the index is within range
+		if (index < LdrErrStrings.size())
+		{
+			return LdrErrStrings[index].loadableAnyway;
+		}
+
+		// If this assert triggers, we need to add the missing string
+		// to the PeLib::LdrErrStrings vector
+		assert(false);
+		return false;
 	}
 
 	// Anti-assert feature. Debug version of isprint in MS Visual C++ asserts
@@ -282,39 +283,6 @@ namespace PeLib
 		std::transform(t2.begin(), t2.end(), t2.begin(), (int(*)(int))std::toupper);
 #endif
 		return t1 == t2;
-	}
-
-	PELIB_IMAGE_DOS_HEADER::PELIB_IMAGE_DOS_HEADER()
-	{
-		e_magic = 0;
-		e_cblp = 0;
-		e_cp = 0;
-		e_crlc = 0;
-		e_cparhdr = 0;
-		e_minalloc = 0;
-		e_maxalloc = 0;
-		e_ss = 0;
-		e_sp = 0;
-		e_csum = 0;
-		e_ip = 0;
-		e_cs = 0;
-		e_lfarlc = 0;
-		e_ovno = 0;
-
-		for (unsigned int i = 0; i < sizeof(e_res) / sizeof(e_res[0]); i++)
-		{
-			e_res[i] = 0;
-		}
-
-		e_oemid = 0;
-		e_oeminfo = 0;
-
-		for (unsigned int i = 0; i < sizeof(e_res2) / sizeof(e_res2[0]); i++)
-		{
-			e_res2[i] = 0;
-		}
-
-		e_lfanew = 0;
 	}
 
 	PELIB_EXP_FUNC_INFORMATION::PELIB_EXP_FUNC_INFORMATION()
@@ -423,106 +391,7 @@ namespace PeLib
 		return isEqualNc(this->funcname, strFunctionName);
 	}
 
-	unsigned int getFileType(PeFile32& pef)
-	{
-		// Attempt to read the DOS file header.
-		if (pef.readMzHeader() != ERROR_NONE)
-		{
-			return PEFILE_UNKNOWN;
-		}
-
-		// Verify the DOS header
-		if (!pef.mzHeader().isValid())
-		{
-			return PEFILE_UNKNOWN;
-		}
-
-		// Read PE header. Note that at this point, we read the header as if
-		// it was 32-bit PE file.
-		if (pef.readPeHeader() != ERROR_NONE)
-		{
-			return PEFILE_UNKNOWN;
-		}
-
-		word machine = pef.peHeader().getMachine();
-		word magic = pef.peHeader().getMagic();
-
-		// jk2012-02-20: make the PEFILE32 be the default return value
-		if ((machine == PELIB_IMAGE_FILE_MACHINE_AMD64
-					|| machine == PELIB_IMAGE_FILE_MACHINE_IA64)
-				&& magic == PELIB_IMAGE_NT_OPTIONAL_HDR64_MAGIC)
-		{
-			return PEFILE64;
-		}
-		else
-		{
-			return PEFILE32;
-		}
-	}
-
-	/**
-	* @param strFilename Name of a file.
-	* @return Either PEFILE32, PEFILE64 or PEFILE_UNKNOWN
-	**/
-	unsigned int getFileType(const std::string strFilename)
-	{
-		PeFile32 pef(strFilename);
-		return getFileType(pef);
-	}
-
-	/**
-	* @param stream Input stream.
-	* @return Either PEFILE32, PEFILE64 or PEFILE_UNKNOWN
-	**/
-	unsigned int getFileType(std::istream& stream)
-	{
-		PeFile32 pef(stream);
-		return getFileType(pef);
-	}
-
-	/**
-	* Opens a PE file. The return type is either PeFile32 or PeFile64 object. If an error occurs the return
-	* value is 0.
-	* @param strFilename Name of a file.
-	* @return Either a PeFile32 object, a PeFil64 object or 0.
-	**/
-	PeFile* openPeFile(const std::string& strFilename)
-	{
-		unsigned int type = getFileType(strFilename);
-
-		if (type == PEFILE32)
-		{
-			return new PeFile32(strFilename);
-		}
-		else if (type == PEFILE64)
-		{
-			return new PeFile64(strFilename);
-		}
-		else
-		{
-			return nullptr;
-		}
-	}
-
-	PeFile* openPeFile(std::istream& stream)
-	{
-		unsigned int type = getFileType(stream);
-
-		if (type == PEFILE32)
-		{
-			return new PeFile32(stream);
-		}
-		else if (type == PEFILE64)
-		{
-			return new PeFile64(stream);
-		}
-		else
-		{
-			return nullptr;
-		}
-	}
-
-	unsigned int PELIB_IMAGE_BOUND_DIRECTORY::size() const
+	std::size_t PELIB_IMAGE_BOUND_DIRECTORY::size() const
 	{
 		unsigned int size = 0;
 		for (unsigned int i = 0; i < moduleForwarders.size(); ++i)

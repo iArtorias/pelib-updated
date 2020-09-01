@@ -6,10 +6,8 @@ set(PELIB_SOURCES
 	ExportDirectory.cpp
 	IatDirectory.cpp
 	InputBuffer.cpp
-	MzHeader.cpp
 	OutputBuffer.cpp
 	PeFile.cpp
-	PeHeader.cpp
 	PeLibAux.cpp
 	RelocationsDirectory.cpp
 	ResourceDirectory.cpp
@@ -18,6 +16,9 @@ set(PELIB_SOURCES
 )
 
 add_library(pelib STATIC ${PELIB_SOURCES})
+
+target_compile_features(pelib PUBLIC cxx_std_17)
+
 target_include_directories(pelib
 	PUBLIC ${PROJECT_SOURCE_DIR}/include/)
 
