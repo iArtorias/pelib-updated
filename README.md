@@ -51,7 +51,7 @@ You can pass additional parameters to `cmake`:
 ## License
 
 The original PeLib modules:
-* Copyright (c) 2004 - 2005 Sebastian Porst (webmaster@the-interweb.com), licensed under the zlib/libpng License. See the `ZLIB_LICENSE` file for more details.
+* Copyright (c) 2004 - 2005 Sebastian Porst (webmaster@the-interweb.com), licensed under the zlib/libpng License. See the [`ZLIB_LICENSE`] file for more details.
 
 Modules added by Avast Software:
-* Copyright (c) 2017 Avast Software, licensed under the MIT license. See the `MIT_LICENSE` file for more details.
+* Copyright (c) 2017 - 2020 Avast Software, licensed under the MIT license. See the [`MIT_LICENSE`] file for more details.
