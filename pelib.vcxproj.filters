@@ -22,6 +22,12 @@
     <Filter Include="Source Files\pelib">
       <UniqueIdentifier>{c2586062-5633-46e8-ac53-ac9fa16187ce}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\utils">
+      <UniqueIdentifier>{a0959e7b-bd64-4485-947d-5681e2d8808d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\retdec\utils">
+      <UniqueIdentifier>{375de7ad-9c49-4357-83c4-eb26123fc7bd}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\retdec\pelib\BoundImportDirectory.h">
@@ -81,6 +87,24 @@
     <ClInclude Include="include\retdec\pelib\TlsDirectory.h">
       <Filter>Header Files\retdec\pelib</Filter>
     </ClInclude>
+    <ClInclude Include="include\retdec\pelib\ConfigDirectory.h">
+      <Filter>Header Files\retdec\pelib</Filter>
+    </ClInclude>
+    <ClInclude Include="include\retdec\utils\container.h">
+      <Filter>Header Files\retdec\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="include\retdec\utils\conversion.h">
+      <Filter>Header Files\retdec\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="include\retdec\utils\filter_iterator.h">
+      <Filter>Header Files\retdec\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="include\retdec\utils\ord_lookup.h">
+      <Filter>Header Files\retdec\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="include\retdec\utils\string.h">
+      <Filter>Header Files\retdec\utils</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\pelib\BoundImportDirectory.cpp">
@@ -127,6 +151,18 @@
     </ClCompile>
     <ClCompile Include="src\pelib\SecurityDirectory.cpp">
       <Filter>Source Files\pelib</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pelib\ConfigDirectory.cpp">
+      <Filter>Source Files\pelib</Filter>
+    </ClCompile>
+    <ClCompile Include="src\utils\ord_lookup.cpp">
+      <Filter>Source Files\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="src\utils\conversion.cpp">
+      <Filter>Source Files\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="src\utils\string.cpp">
+      <Filter>Source Files\utils</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

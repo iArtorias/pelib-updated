@@ -13,8 +13,13 @@
 #ifndef RETDEC_PELIB_PELIBAUX_H
 #define RETDEC_PELIB_PELIBAUX_H
 
+#include <cstdint>
+#include <ios>
 #include <numeric>
 #include <string.h>
+#include <string>
+#include <vector>
+#include <fstream>
 
 #ifdef _MSC_VER						// Reduces number of warnings under MS Visual Studio from ~100000 to zero
 #pragma warning(disable:4267)		// C4267: 'initializing': conversion from 'size_t' to '_Ty2', possible loss of data
@@ -40,7 +45,8 @@ namespace PeLib
 		ERROR_ENTRY_NOT_FOUND = -7,
 		ERROR_DUPLICATE_ENTRY = -8,
 		ERROR_DIRECTORY_DOES_NOT_EXIST = -9,
-		ERROR_COFF_SYMBOL_TABLE_DOES_NOT_EXIST = -10
+		ERROR_COFF_SYMBOL_TABLE_DOES_NOT_EXIST = -10,
+		ERROR_SKIP_RESOURCE = -11
 	};
 
 	enum LoaderError
@@ -155,6 +161,8 @@ namespace PeLib
 	const std::uint32_t PE_MAX_SECTION_COUNT_XP = 96;
 	const std::uint32_t PE_MAX_SECTION_COUNT_7 = 192;
 
+	const std::uint32_t PELIB_IMAGE_DEBUG_INFO_CODEVIEW = 2;
+
 	const std::uint32_t PELIB_SECTOR_SIZE = 0x200;
 
 	const std::uint32_t PELIB_IMAGE_NUMBEROF_DIRECTORY_ENTRIES = 16;
@@ -162,7 +170,7 @@ namespace PeLib
 	const std::uint32_t PELIB_IMAGE_RESOURCE_DATA_IS_DIRECTORY = 0x80000000;
 	const std::uint32_t PELIB_IMAGE_RESOURCE_NAME_IS_STRING = 0x80000000;
 	const std::uint32_t PELIB_IMAGE_RESOURCE_RVA_MASK = 0x7FFFFFFF;
-	const std::uint16_t PELIB_MAX_RESOURCE_ENTRIES = 0xC000;            // Maximum number of resource directory entries we consider OK
+	const std::uint16_t PELIB_MAX_RESOURCE_ENTRIES = 0x8000;            // Maximum number of resource directory entries we consider OK
 
 	enum : std::uint32_t
 	{
@@ -976,7 +984,7 @@ namespace PeLib
 		std::uint16_t	MinorVersion;
 		std::uint16_t	NumberOfNamedEntries;
 		std::uint16_t	NumberOfIdEntries;
-		
+
 		PELIB_IMAGE_RESOURCE_DIRECTORY();
 
 		static inline std::size_t size() {return 16;}
@@ -1060,13 +1068,16 @@ namespace PeLib
 	{
 		/// The IMAGE_THUNK_DATA struct of an imported function.
 		PELIB_IMAGE_THUNK_DATA itd;
-		/// The hint of an imported function.
-		std::uint16_t hint;
 		/// The function name of an imported function.
 		std::string fname;
+		/// The RVA of the patched address (from the FirstThunk)
+		std::uint32_t patchRva;
+		/// The hint of an imported function (only if imported by name)
+		std::uint16_t hint;
 
 		PELIB_THUNK_DATA()
 		{
+			patchRva = 0;
 			hint = 0;
 		}
 
@@ -1107,16 +1118,16 @@ namespace PeLib
 		PELIB_IMAGE_IMPORT_DESCRIPTOR impdesc;
 		/// The name of an imported DLL.
 		std::string name;
-		/// All original first thunk values of an imported DLL.
-		std::vector<PELIB_THUNK_DATA> originalfirstthunk;
-		/// All first thunk value of an imported DLL.
-		std::vector<PELIB_THUNK_DATA> firstthunk;
+		/// The list of functions imported from the DLL
+		//std::vector<PELIB_THUNK_DATA> originalfirstthunk;
+		//std::vector<PELIB_THUNK_DATA> firstthunk;
+		std::vector<PELIB_THUNK_DATA> thunk_data;
 
 		inline std::uint32_t calculateSize(std::uint32_t pointerSize) const
 		{
 			std::uint32_t totalSize = sizeof(PELIB_IMAGE_IMPORT_DESCRIPTOR) + name.size() + 1;  // descriptor + dllname
 
-			for(const auto & element : originalfirstthunk)
+			for(const auto & element : thunk_data)
 				totalSize += element.calculateSize(pointerSize);
 			return totalSize + pointerSize;                            // Add zero-termination
 		}
@@ -1127,8 +1138,8 @@ namespace PeLib
 		}
 	};
 
-	const std::size_t IMPORT_LIBRARY_MAX_LENGTH = 96;
-	const std::size_t IMPORT_SYMBOL_MAX_LENGTH = 96;
+	const std::size_t IMPORT_LIBRARY_MAX_LENGTH = 256;
+	const std::size_t IMPORT_SYMBOL_MAX_LENGTH = 256;
 
 	struct PELIB_IMAGE_RESOURCE_DATA_ENTRY
 	{
@@ -1242,7 +1253,7 @@ namespace PeLib
 */
 
 	const unsigned int PELIB_IMAGE_SIZEOF_COFF_SYMBOL = 18;
-	const std::size_t COFF_SYMBOL_NAME_MAX_LENGTH = 96;
+	const std::size_t COFF_SYMBOL_NAME_MAX_LENGTH = 256;
 
 	struct PELIB_IMAGE_COFF_SYMBOL
 	{

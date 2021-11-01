@@ -1,19 +1,7 @@
 set(PELIB_SOURCES
-	BoundImportDirectory.cpp
-	CoffSymbolTable.cpp
-	ComHeaderDirectory.cpp
-	ConfigDirectory.cpp
-	DebugDirectory.cpp
-	ExportDirectory.cpp
-	IatDirectory.cpp
-	InputBuffer.cpp
-	OutputBuffer.cpp
-	PeFile.cpp
-	PeLibAux.cpp
-	RelocationsDirectory.cpp
-	ResourceDirectory.cpp
-	RichHeader.cpp
-	SecurityDirectory.cpp
+	conversion.cpp
+	ord_lookup.cpp
+	string.cpp
 )
 
 add_library(pelib STATIC ${PELIB_SOURCES})

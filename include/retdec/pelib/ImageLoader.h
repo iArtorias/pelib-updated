@@ -41,8 +41,8 @@ enum struct PELIB_MEMBER_TYPE : std::uint32_t
 enum struct PELIB_COMPARE_RESULT : std::uint32_t
 {
 	ImagesEqual,                                    // The images are equal
-	ImagesWindowsLoadedWeDidnt,                     // 
-	ImagesWindowsDidntLoadWeDid,                    // 
+	ImagesWindowsLoadedWeDidnt,                     //
+	ImagesWindowsDidntLoadWeDid,                    //
 	ImagesDifferentSize,                            // The images have different size
 	ImagesDifferentPageAccess,                      // An image page is different (accessible vs non-accessible)
 	ImagesDifferentPageValue,                       // There is a different value at a certain offset
@@ -62,6 +62,13 @@ const std::uint32_t BuildNumberMask = 0x0FFFF;      // Mask for extracting the o
 const std::uint32_t BuildNumber64Bit = 0x10000;     // Emulate 64-bit system
 
 //-----------------------------------------------------------------------------
+// Flags for ImageLoader::Load() and ImageLoader::Save()
+
+const std::uint32_t IoFlagHeadersOnly = 1;          // Only load/save PE headers
+const std::uint32_t IoFlagNewFile     = 2;          // Create the PE as new file (for unpackers)
+const std::uint32_t IoFlagLoadAsImage = 4;          // Load the data as mapped image file
+
+//-----------------------------------------------------------------------------
 // Structure for comparison with Windows mapped images
 
 typedef bool (*PFN_VERIFY_ADDRESS)(void * ptr, size_t length);
@@ -74,7 +81,7 @@ struct PELIB_IMAGE_COMPARE
 	PELIB_COMPARE_RESULT compareResult = PELIB_COMPARE_RESULT::ImagesCompareInvalid;
 	const char * szFileName = nullptr;              // Current file being compared (plain name)
 	const char * dumpIfNotEqual = nullptr;          // If non-NULL, the image will be dumped into that file if different
-	std::uint32_t differenceOffset = 0;             // If compareResult is ImagesDifferentPageValue, this contains offset of the difference 
+	std::uint32_t differenceOffset = 0;             // If compareResult is ImagesDifferentPageValue, this contains offset of the difference
 	std::uint32_t startTickCount = 0;               // GetTickCount value at the start of image testing
 };
 
@@ -144,8 +151,8 @@ class ImageLoader
 	int Load(std::istream & fs, std::streamoff fileOffset = 0, bool loadHeadersOnly = false);
 	int Load(const char * fileName, bool loadHeadersOnly = false);
 
-	int Save(std::ostream & fs, std::streamoff fileOffset = 0, bool saveHeadersOnly = false);
-	int Save(const char * fileName, bool saveHeadersOnly = false);
+	int Save(std::ostream & fs, std::streamoff fileOffset = 0, std::uint32_t saveFlags = 0);
+	int Save(const char * fileName, std::uint32_t saveFlags = 0);
 
 	bool relocateImage(std::uint64_t newImageBase);
 
@@ -171,7 +178,9 @@ class ImageLoader
 
 	std::uint32_t vaToRva(std::uint64_t VirtualAddress) const;
 	std::uint32_t getFileOffsetFromRva(std::uint32_t rva) const;
+	std::uint32_t getValidOffsetFromRva(std::uint32_t rva) const;
 	std::uint32_t getRealPointerToRawData(std::size_t sectionIndex) const;
+	std::uint32_t getRealSizeOfRawData(std::size_t sectionIndex) const;
 	std::uint32_t getImageProtection(std::uint32_t characteristics) const;
 	std::size_t   getSectionIndexByRva(std::uint32_t Rva) const;
 
@@ -312,16 +321,34 @@ class ImageLoader
 		return securityDirFileOffset;
 	}
 
-	std::uint32_t getDataDirRva(std::size_t dataDirIndex) const
+	std::uint32_t getDataDirRva(std::uint64_t dataDirIndex) const
 	{
 		// The data directory must be present there
 		return (optionalHeader.NumberOfRvaAndSizes > dataDirIndex) ? optionalHeader.DataDirectory[dataDirIndex].VirtualAddress : 0;
 	}
 
-	std::uint32_t getDataDirSize(std::size_t dataDirIndex) const
+	std::uint32_t getDataDirSize(std::uint64_t dataDirIndex) const
 	{
 		// The data directory must be present there
 		return (optionalHeader.NumberOfRvaAndSizes > dataDirIndex) ? optionalHeader.DataDirectory[dataDirIndex].Size : 0;
+	}
+
+	std::uint32_t getComDirRva() const
+	{
+		// For 32-bit binaries, the COM directory is valid even if NumberOfRvaAndSizes < IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR
+		// Sample: 58b0147d7dd3cd73cb8bf8df077e244650621174f7ff788ad06fd0c1f82aac40
+		if(optionalHeader.Magic == PELIB_IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+			return optionalHeader.DataDirectory[PELIB_IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR].VirtualAddress;
+		return getDataDirRva(PELIB_IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR);
+	}
+
+	std::uint32_t getComDirSize() const
+	{
+		// For 32-bit binaries, the COM directory is valid even if NumberOfRvaAndSizes < IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR
+		// Sample: 58b0147d7dd3cd73cb8bf8df077e244650621174f7ff788ad06fd0c1f82aac40
+		if(optionalHeader.Magic == PELIB_IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+			return optionalHeader.DataDirectory[PELIB_IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR].Size;
+		return getDataDirSize(PELIB_IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR);
 	}
 
 	std::uint64_t getVirtualAddressMasked(std::uint32_t rva)
@@ -373,15 +400,20 @@ class ImageLoader
 	void writeNewImageBase(std::uint64_t newImageBase);
 
 	int captureDosHeader(ByteBuffer & fileData);
+	int saveToFile(std::ostream & fs, std::streamoff fileOffset, std::size_t rva, std::size_t length);
+	int saveDosHeaderNew(std::ostream & fs, std::streamoff fileOffset);
 	int saveDosHeader(std::ostream & fs, std::streamoff fileOffset);
 	int captureNtHeaders(ByteBuffer & fileData);
+	int saveNtHeadersNew(std::ostream & fs, std::streamoff fileOffset);
 	int saveNtHeaders(std::ostream & fs, std::streamoff fileOffset);
 	int captureSectionName(ByteBuffer & fileData, std::string & sectionName, const std::uint8_t * name);
 	int captureSectionHeaders(ByteBuffer & fileData);
+	int saveSectionHeadersNew(std::ostream & fs, std::streamoff fileOffset);
 	int saveSectionHeaders(std::ostream & fs, std::streamoff fileOffset);
 	int captureImageSections(ByteBuffer & fileData);
 	int captureOptionalHeader32(std::uint8_t * fileData, std::uint8_t * filePtr, std::uint8_t * fileEnd);
 	int captureOptionalHeader64(std::uint8_t * fileData, std::uint8_t * filePtr, std::uint8_t * fileEnd);
+	std::uint32_t copyDataDirectories(std::uint8_t * optionalHeaderPtr, std::uint8_t * dataDirectoriesPtr, std::size_t optionalHeaderMax, std::uint32_t numberOfRvaAndSizes);
 
 	int verifyDosHeader(PELIB_IMAGE_DOS_HEADER & hdr, std::size_t fileSize);
 	int verifyDosHeader(std::istream & fs, std::streamoff fileOffset, std::size_t fileSize);
@@ -471,6 +503,7 @@ class ImageLoader
 	bool forceIntegrityCheckCertificate;                // If true, extra check for certificate will be provided
 	bool checkNonLegacyDllCharacteristics;              // If true, extra checks will be performed on DllCharacteristics
 	bool checkImagePostMapping;                         // If true, extra checks will be performed after the image is mapped
+	bool alignSingleSectionImagesToPage;                // Align single-section images to page size in 64-bit windows
 };
 
 }	// namespace PeLib
