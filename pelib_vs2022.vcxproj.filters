@@ -1,0 +1,168 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Header Files\retdec">
+      <UniqueIdentifier>{2f6419fe-11ea-474b-bf99-da3335783a52}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\retdec\pelib">
+      <UniqueIdentifier>{9e12d3fe-348a-46fe-8dc9-d7d81c8b2753}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\pelib">
+      <UniqueIdentifier>{c2586062-5633-46e8-ac53-ac9fa16187ce}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\utils">
+      <UniqueIdentifier>{a0959e7b-bd64-4485-947d-5681e2d8808d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\retdec\utils">
+      <UniqueIdentifier>{375de7ad-9c49-4357-83c4-eb26123fc7bd}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\retdec\pelib\BoundImportDirectory.h">
+      <Filter>Header Files\retdec\pelib</Filter>
+    </ClInclude>
+    <ClInclude Include="include\retdec\pelib\CoffSymbolTable.h">
+      <Filter>Header Files\retdec\pelib</Filter>
+    </ClInclude>
+    <ClInclude Include="include\retdec\pelib\ComHeaderDirectory.h">
+      <Filter>Header Files\retdec\pelib</Filter>
+    </ClInclude>
+    <ClInclude Include="include\retdec\pelib\DebugDirectory.h">
+      <Filter>Header Files\retdec\pelib</Filter>
+    </ClInclude>
+    <ClInclude Include="include\retdec\pelib\DelayImportDirectory.h">
+      <Filter>Header Files\retdec\pelib</Filter>
+    </ClInclude>
+    <ClInclude Include="include\retdec\pelib\ExportDirectory.h">
+      <Filter>Header Files\retdec\pelib</Filter>
+    </ClInclude>
+    <ClInclude Include="include\retdec\pelib\IatDirectory.h">
+      <Filter>Header Files\retdec\pelib</Filter>
+    </ClInclude>
+    <ClInclude Include="include\retdec\pelib\ImageLoader.h">
+      <Filter>Header Files\retdec\pelib</Filter>
+    </ClInclude>
+    <ClInclude Include="include\retdec\pelib\ImportDirectory.h">
+      <Filter>Header Files\retdec\pelib</Filter>
+    </ClInclude>
+    <ClInclude Include="include\retdec\pelib\InputBuffer.h">
+      <Filter>Header Files\retdec\pelib</Filter>
+    </ClInclude>
+    <ClInclude Include="include\retdec\pelib\OutputBuffer.h">
+      <Filter>Header Files\retdec\pelib</Filter>
+    </ClInclude>
+    <ClInclude Include="include\retdec\pelib\PeFile.h">
+      <Filter>Header Files\retdec\pelib</Filter>
+    </ClInclude>
+    <ClInclude Include="include\retdec\pelib\PeLibAux.h">
+      <Filter>Header Files\retdec\pelib</Filter>
+    </ClInclude>
+    <ClInclude Include="include\retdec\pelib\PeLibInc.h">
+      <Filter>Header Files\retdec\pelib</Filter>
+    </ClInclude>
+    <ClInclude Include="include\retdec\pelib\RelocationsDirectory.h">
+      <Filter>Header Files\retdec\pelib</Filter>
+    </ClInclude>
+    <ClInclude Include="include\retdec\pelib\ResourceDirectory.h">
+      <Filter>Header Files\retdec\pelib</Filter>
+    </ClInclude>
+    <ClInclude Include="include\retdec\pelib\RichHeader.h">
+      <Filter>Header Files\retdec\pelib</Filter>
+    </ClInclude>
+    <ClInclude Include="include\retdec\pelib\SecurityDirectory.h">
+      <Filter>Header Files\retdec\pelib</Filter>
+    </ClInclude>
+    <ClInclude Include="include\retdec\pelib\TlsDirectory.h">
+      <Filter>Header Files\retdec\pelib</Filter>
+    </ClInclude>
+    <ClInclude Include="include\retdec\pelib\ConfigDirectory.h">
+      <Filter>Header Files\retdec\pelib</Filter>
+    </ClInclude>
+    <ClInclude Include="include\retdec\utils\container.h">
+      <Filter>Header Files\retdec\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="include\retdec\utils\conversion.h">
+      <Filter>Header Files\retdec\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="include\retdec\utils\filter_iterator.h">
+      <Filter>Header Files\retdec\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="include\retdec\utils\ord_lookup.h">
+      <Filter>Header Files\retdec\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="include\retdec\utils\string.h">
+      <Filter>Header Files\retdec\utils</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\pelib\BoundImportDirectory.cpp">
+      <Filter>Source Files\pelib</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pelib\CoffSymbolTable.cpp">
+      <Filter>Source Files\pelib</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pelib\ComHeaderDirectory.cpp">
+      <Filter>Source Files\pelib</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pelib\DebugDirectory.cpp">
+      <Filter>Source Files\pelib</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pelib\ExportDirectory.cpp">
+      <Filter>Source Files\pelib</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pelib\IatDirectory.cpp">
+      <Filter>Source Files\pelib</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pelib\ImageLoader.cpp">
+      <Filter>Source Files\pelib</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pelib\InputBuffer.cpp">
+      <Filter>Source Files\pelib</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pelib\OutputBuffer.cpp">
+      <Filter>Source Files\pelib</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pelib\PeFile.cpp">
+      <Filter>Source Files\pelib</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pelib\PeLibAux.cpp">
+      <Filter>Source Files\pelib</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pelib\RelocationsDirectory.cpp">
+      <Filter>Source Files\pelib</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pelib\ResourceDirectory.cpp">
+      <Filter>Source Files\pelib</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pelib\RichHeader.cpp">
+      <Filter>Source Files\pelib</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pelib\SecurityDirectory.cpp">
+      <Filter>Source Files\pelib</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pelib\ConfigDirectory.cpp">
+      <Filter>Source Files\pelib</Filter>
+    </ClCompile>
+    <ClCompile Include="src\utils\ord_lookup.cpp">
+      <Filter>Source Files\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="src\utils\conversion.cpp">
+      <Filter>Source Files\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="src\utils\string.cpp">
+      <Filter>Source Files\utils</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>
