@@ -13,12 +13,13 @@
 #ifndef RETDEC_PELIB_IMPORTDIRECTORY_H
 #define RETDEC_PELIB_IMPORTDIRECTORY_H
 
+#include <functional>
 #include <set>
 #include <unordered_map>
 
 #include "retdec/pelib/PeLibAux.h"
 #include "retdec/pelib/ImageLoader.h"
-#include "retdec/pelib/ImageLoader.h"
+#include "retdec/pelib/OutputBuffer.h"
 #include "retdec/utils/ord_lookup.h"
 #include "retdec/utils/string.h"
 
@@ -602,7 +603,8 @@ namespace PeLib
 			// If not, it's RVA may still be valid due mapping -> keep zeros.
 			// Example sample: de0dea00414015bacbcbfc1fa53af9f6731522687d82f5de2e9402410488d190
 			// (single entry in the import directory at file offset 0x3EC4 followed by end-of-file)
-			if ((rva + sizeof(PELIB_IMAGE_IMPORT_DESCRIPTOR)) >= SizeOfImage)
+			// A descriptor that ends exactly at SizeOfImage is still complete.
+			if ((static_cast<std::uint64_t>(rva) + sizeof(PELIB_IMAGE_IMPORT_DESCRIPTOR)) > SizeOfImage)
 			{
 				setLoaderError(LDR_ERROR_IMPDIR_CUT);
 				break;
@@ -660,9 +662,9 @@ namespace PeLib
 
 			// Mark the range occupied by name
 			// +1 for null terminator
-			// If the end address is even, we need to align it by 2, so next name always starts at even address
+			// If the end address is odd, we need to align it by 2, so next name always starts at even address
 			m_occupiedAddresses.emplace_back(iidCurr.impdesc.Name, iidCurr.impdesc.Name + iidCurr.name.length() + 1);
-			if (!(m_occupiedAddresses.back().second & 1))
+			if (m_occupiedAddresses.back().second & 1)
 				m_occupiedAddresses.back().second += 1;
 
 			// Push the import descriptor into the vector
@@ -738,7 +740,7 @@ namespace PeLib
 						);
 
 						// Align the end by 2
-						m_occupiedAddresses.back().second = (m_occupiedAddresses.back().second + 1) & 0xFFFFFFFFE;
+						m_occupiedAddresses.back().second = (m_occupiedAddresses.back().second + 1) & 0xFFFFFFFEu;
 					}
 					else
 					{

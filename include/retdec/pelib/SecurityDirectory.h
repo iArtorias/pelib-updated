@@ -8,6 +8,9 @@
 #define RETDEC_PELIB_SECURITYDIRECTORY_H
 
 #include <cstdint>
+#include <vector>
+
+#include "retdec/pelib/PeLibInc.h"
 
 namespace PeLib
 {

@@ -14,16 +14,23 @@ The [original](http://www.pelib.com/index.php) project by Sebastian Porst was fu
 
 ## Use
 
-A single target named `pelib` is exposed. It can be used as follows:
+A single static library target named `pelib` (alias `pelib::pelib`) is exposed. It works with `add_subdirectory` and
+`FetchContent`:
 ```cmake
-target_link_libraries(project-that-needs-pelib pelib)
+include(FetchContent)
+FetchContent_Declare(pelib GIT_REPOSITORY https://github.com/iArtorias/pelib-updated.git GIT_TAG master)
+FetchContent_MakeAvailable(pelib)
+target_link_libraries(project-that-needs-pelib PRIVATE pelib::pelib)
 ```
+
+The warning flags of the library are private, they do not reach the projects that link it. `-DPELIB_INSTALL=ON`
+generates the install target (on by default when PeLib is the top level project).
 
 ## Requirements
 
 * A compiler supporting C++17
-  * On Windows, only Microsoft Visual C++ is supported (Visual Studio 2019 or older).
-* CMake (version >= 3.6)
+  * On Windows, Microsoft Visual C++ (Visual Studio 2019 or later). GCC and Clang build the library too.
+* CMake (version >= 3.15)
 
 ## Build and Installation
 

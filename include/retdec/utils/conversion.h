@@ -7,6 +7,7 @@
 #ifndef RETDEC_UTILS_CONVERSION_H
 #define RETDEC_UTILS_CONVERSION_H
 
+#include <cstdint>
 #include <iomanip>
 #include <ios>
 #include <limits>
@@ -21,7 +22,7 @@ namespace utils {
 /// @name Conversions
 /// @{
 
-char* byteToHexString(uint8_t b, bool uppercase = true);
+char* byteToHexString(std::uint8_t b, bool uppercase = true);
 
 /**
  * Converts the given array of numbers into a hexadecimal string representation
@@ -152,7 +153,7 @@ std::string intToHexString(I w, bool addBase = false, unsigned fillToN = 0)
 	return res;
 }
 
-std::vector<uint8_t> hexStringToBytes(const std::string& hexIn);
+std::vector<std::uint8_t> hexStringToBytes(const std::string& hexIn);
 
 /**
 * @brief Converts the given string into a number.

@@ -1,20 +1,20 @@
-cmake_minimum_required(VERSION 3.6)
+cmake_minimum_required(VERSION 3.15)
 
 project(pelib CXX)
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Set the default build type to 'Release'
-if(NOT CMAKE_BUILD_TYPE)
-	set(default_build_type "Release")
-	message(STATUS "Setting build type to '${default_build_type}' as none was specified.")
-	set(CMAKE_BUILD_TYPE "${default_build_type}" CACHE STRING "Choose the type of build." FORCE)
+# Default build type for single configuration generators
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+	message(STATUS "Setting build type to 'Release' as none was specified.")
+	set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build." FORCE)
 endif()
 
-set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
-set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+# Install rules only when PeLib is the top level project, a parent project ('FetchContent', 'add_subdirectory') decides itself
+if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
+	set(PELIB_INSTALL_DEFAULT ON)
+else()
+	set(PELIB_INSTALL_DEFAULT OFF)
+endif()
+
+option(PELIB_INSTALL "Generate the install target" ${PELIB_INSTALL_DEFAULT})
 
 add_subdirectory(src)

@@ -92,7 +92,6 @@ namespace PeLib
 			int read(ImageLoader & imageLoader)
 			{
 				std::uint32_t rva = imageLoader.getDataDirRva(PELIB_IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT);
-				std::uint32_t size = imageLoader.getDataDirSize(PELIB_IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT);
 				std::uint32_t sizeOfImage = imageLoader.getSizeOfImage();
 				std::uint32_t pointerSize = imageLoader.getPointerSize();
 				std::uint64_t imageBase   = imageLoader.getImageBase();

@@ -891,16 +891,21 @@ namespace
 				{
 					// Set the offset to "DanS"
 					this->offset = std::distance(it + 1, rich.rend()) * 4;
-					// Because we are analysing bottom up, reverse the vector
-					std::reverse(decryptedHeader.begin(), decryptedHeader.end());
 					break;
 				}
 			}
+
+			// Because we are analysing bottom up, reverse the vector. Also without a "DanS" marker,
+			// so that 'ignoreInvalidKey' analyzes the records in file order.
+			std::reverse(decryptedHeader.begin(), decryptedHeader.end());
 			setValidStructure();
 		} while (!analyze());
 
-		if (ignoreInvalidKey && noOfIters)
+		// The forced analysis is only for a header that did not validate. A valid header has its
+		// records already, analyzing it again appended every record a second time.
+		if (ignoreInvalidKey && noOfIters && !headerIsValid)
 		{
+			records.clear();
 			analyze(true);
 		}
 	}

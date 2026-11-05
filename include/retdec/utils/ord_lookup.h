@@ -7,6 +7,9 @@
 #ifndef RETDEC_UTILS_ORD_LOOKUP_H
 #define RETDEC_UTILS_ORD_LOOKUP_H
 
+#include <cstddef>
+#include <string>
+
 namespace retdec {
 namespace utils {
 

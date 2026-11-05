@@ -2588,8 +2588,13 @@ bool PeLib::ImageLoader::isGoodPagePointer(
 		// (Enable C++ Exceptions: Yes with SEH Exceptions (/EHa))
 		try
 		{
-			std::uint8_t dummyBuffer[0x10] = {0};
-			memcmp(pagePtr, dummyBuffer, sizeof(dummyBuffer));
+			// A volatile read. The result of the old memcmp was unused and the compiler removed the
+			// access, so a bad page was never detected.
+			volatile const std::uint8_t * probe = static_cast<volatile const std::uint8_t *>(pagePtr);
+			std::uint8_t sum = 0;
+			for(std::size_t i = 0; i < 0x10; i++)
+				sum ^= probe[i];
+			(void)sum;
 			return true;
 		}
 		catch(...)

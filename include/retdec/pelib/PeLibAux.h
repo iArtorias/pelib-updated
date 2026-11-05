@@ -849,7 +849,7 @@ namespace PeLib
 				SizeOfRawData = newSizeOfRawData;
 		}
 
-		static const std::size_t size()
+		static std::size_t size()
 		{
 			return sizeof(PELIB_IMAGE_SECTION_HEADER);
 		}

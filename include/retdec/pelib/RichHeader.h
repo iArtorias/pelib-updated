@@ -11,6 +11,8 @@
 #include <vector>
 #include <map>
 
+#include "retdec/pelib/PeLibInc.h"
+
 namespace PeLib
 {
 	/**

@@ -1,31 +1,20 @@
-set(PELIB_SOURCES
-	BoundImportDirectory.cpp
-	CoffSymbolTable.cpp
-	ComHeaderDirectory.cpp
-	ConfigDirectory.cpp
-	DebugDirectory.cpp
-	ExportDirectory.cpp
-	IatDirectory.cpp
-	InputBuffer.cpp
-	OutputBuffer.cpp
-	PeFile.cpp
-	PeLibAux.cpp
-	RelocationsDirectory.cpp
-	ResourceDirectory.cpp
-	RichHeader.cpp
-	SecurityDirectory.cpp
+# Sources of the PE parser, the target is defined in 'src/CMakeLists.txt'.
+set(PELIB_PELIB_SOURCES
+	${CMAKE_CURRENT_SOURCE_DIR}/BoundImportDirectory.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/CoffSymbolTable.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/ComHeaderDirectory.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/ConfigDirectory.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/DebugDirectory.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/ExportDirectory.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/IatDirectory.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/ImageLoader.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/InputBuffer.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/OutputBuffer.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/PeFile.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/PeLibAux.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/RelocationsDirectory.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/ResourceDirectory.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/RichHeader.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/SecurityDirectory.cpp
+	PARENT_SCOPE
 )
-
-add_library(pelib STATIC ${PELIB_SOURCES})
-
-target_compile_features(pelib PUBLIC cxx_std_17)
-
-target_include_directories(pelib
-	PUBLIC ${PROJECT_SOURCE_DIR}/include/)
-
-# Disable all warnings from this library.
-if(MSVC)
-	target_compile_options(pelib PUBLIC "/w")
-else()
-	target_compile_options(pelib PUBLIC "-w")
-endif()
